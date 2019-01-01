@@ -84,6 +84,9 @@
 #include "sysemu/iothread.h"
 #include "qemu/cutils.h"
 #include "tcg/tcg.h"
+#ifdef CONFIG_PVRDMA
+#include "hw/rdma/vmw/pvrdma_hmp.h"
+#endif
 
 #if defined(TARGET_S390X)
 #include "hw/s390x/storage-keys.h"
@@ -1396,6 +1399,13 @@ static void hmp_info_cpustats(Monitor *mon, const QDict *qdict)
     }
     cpu_dump_statistics(cs, (FILE *)mon, &monitor_fprintf, 0);
 }
+
+#ifdef CONFIG_PVRDMA
+static void hmp_info_pvrdmacounters(Monitor *mon, const QDict *qdict)
+{
+    pvrdma_dump_counters(mon);
+}
+#endif
 
 static void hmp_info_trace_events(Monitor *mon, const QDict *qdict)
 {

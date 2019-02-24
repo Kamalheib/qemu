@@ -938,6 +938,50 @@ void rdma_backend_destroy_qp(RdmaBackendQP *qp, RdmaDeviceResources *dev_res)
     rdma_protected_gslist_destroy(&qp->cqe_ctx_list);
 }
 
+int rdma_backend_create_srq(RdmaBackendSRQ *srq, RdmaBackendPD *pd,
+                            uint32_t max_wr, uint32_t max_sge,
+                            uint32_t srq_limit)
+{
+    struct ibv_srq_init_attr srq_init_attr = {};
+
+    srq_init_attr.attr.max_wr = max_wr;
+    srq_init_attr.attr.max_sge = max_sge;
+    srq_init_attr.attr.srq_limit = srq_limit;
+
+    srq->ibsrq = ibv_create_srq(pd->ibpd, &srq_init_attr);
+    if (!srq->ibsrq) {
+        rdma_error_report("ibv_create_srq fail, errno=%d", errno);
+        return -EIO;
+    }
+
+    return 0;
+}
+
+int rdma_backend_query_srq(RdmaBackendSRQ *srq, struct ibv_srq_attr *srq_attr)
+{
+    if (!srq->ibsrq) {
+        return -EINVAL;
+    }
+
+    return ibv_query_srq(srq->ibsrq, srq_attr);
+}
+
+int rdma_backend_modify_srq(RdmaBackendSRQ *srq, struct ibv_srq_attr *srq_attr,
+                int srq_attr_mask)
+{
+    if (!srq->ibsrq) {
+        return -EINVAL;
+    }
+
+    return ibv_modify_srq(srq->ibsrq, srq_attr, srq_attr_mask);
+}
+
+void rdma_backend_destroy_srq(RdmaBackendSRQ *srq)
+{
+    if (srq->ibsrq)
+        ibv_destroy_srq(srq->ibsrq);
+}
+
 #define CHK_ATTR(req, dev, member, fmt) ({ \
     trace_rdma_check_dev_attr(#member, dev.member, req->member); \
     if (req->member > dev.member) { \
@@ -960,6 +1004,7 @@ static int init_device_caps(RdmaBackendDev *backend_dev,
     }
 
     dev_attr->max_sge = MAX_SGE;
+    dev_attr->max_srq_sge = MAX_SGE;
 
     CHK_ATTR(dev_attr, bk_dev_attr, max_mr_size, "%" PRId64);
     CHK_ATTR(dev_attr, bk_dev_attr, max_qp, "%d");
@@ -970,6 +1015,7 @@ static int init_device_caps(RdmaBackendDev *backend_dev,
     CHK_ATTR(dev_attr, bk_dev_attr, max_qp_rd_atom, "%d");
     CHK_ATTR(dev_attr, bk_dev_attr, max_qp_init_rd_atom, "%d");
     CHK_ATTR(dev_attr, bk_dev_attr, max_ah, "%d");
+    CHK_ATTR(dev_attr, bk_dev_attr, max_srq, "%d");
 
     return 0;
 }

@@ -121,5 +121,8 @@ int rdma_backend_query_srq(RdmaBackendSRQ *srq, struct ibv_srq_attr *srq_attr);
 int rdma_backend_modify_srq(RdmaBackendSRQ *srq, struct ibv_srq_attr *srq_attr,
                             int srq_attr_mask);
 void rdma_backend_destroy_srq(RdmaBackendSRQ *srq);
+void rdma_backend_post_srq_recv(RdmaBackendDev *backend_dev,
+                                RdmaBackendSRQ *srq, struct ibv_sge *sge,
+                                uint32_t num_sge, void *ctx);
 
 #endif

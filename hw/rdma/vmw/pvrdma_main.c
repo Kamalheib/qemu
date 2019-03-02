@@ -534,6 +534,13 @@ static void pvrdma_uar_write(void *opaque, hwaddr addr, uint64_t val,
             pvrdma_cq_poll(&dev->rdma_dev_res, val & PVRDMA_UAR_HANDLE_MASK);
         }
         break;
+    case PVRDMA_UAR_SRQ_OFFSET:
+	if (val & PVRDMA_UAR_SRQ_RECV) {
+            trace_pvrdma_uar_write(addr, val, "QP", "SRQ",
+                                   val & PVRDMA_UAR_HANDLE_MASK, 0);
+	    pvrdma_srq_recv(dev, val & PVRDMA_UAR_HANDLE_MASK);
+	}
+	break;
     default:
         rdma_error_report("Unsupported command, addr=0x%"PRIx64", val=0x%"PRIx64,
                           addr, val);

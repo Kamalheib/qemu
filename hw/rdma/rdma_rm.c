@@ -381,6 +381,7 @@ int rdma_rm_alloc_qp(RdmaDeviceResources *dev_res, uint32_t pd_handle,
     qp->opaque = opaque;
     if (is_srq) {
         qp->srq_handle = srq_handle;
+        srq->recv_cq_handle = recv_cq_handle;
     }
 
     rc = rdma_backend_create_qp(&qp->backend_qp, qp_type, &pd->backend_pd,

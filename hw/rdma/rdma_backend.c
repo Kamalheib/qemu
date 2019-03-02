@@ -116,8 +116,10 @@ static int rdma_poll_cq(RdmaDeviceResources *rdma_dev_res, struct ibv_cq *ibcq)
 
             comp_handler(bctx->up_ctx, &wc[i]);
 
-            rdma_protected_gslist_remove_int32(&bctx->backend_qp->cqe_ctx_list,
-                                               wc[i].wr_id);
+	    if (bctx->backend_qp) {
+                rdma_protected_gslist_remove_int32(&bctx->backend_qp->cqe_ctx_list,
+                                                   wc[i].wr_id);
+	    }
             rdma_rm_dealloc_cqe_ctx(rdma_dev_res, wc[i].wr_id);
             g_free(bctx);
         }
@@ -662,6 +664,57 @@ err_free_bctx:
     g_free(bctx);
 }
 
+void rdma_backend_post_srq_recv(RdmaBackendDev *backend_dev,
+                                RdmaBackendSRQ *srq, struct ibv_sge *sge,
+                                uint32_t num_sge, void *ctx)
+{
+    BackendCtx *bctx;
+    struct ibv_sge new_sge[MAX_SGE];
+    uint32_t bctx_id;
+    int rc;
+    struct ibv_recv_wr wr = {0}, *bad_wr;
+
+    bctx = g_malloc0(sizeof(*bctx));
+    bctx->up_ctx = ctx;
+    bctx->backend_qp = NULL;
+
+    rc = rdma_rm_alloc_cqe_ctx(backend_dev->rdma_dev_res, &bctx_id, bctx);
+    if (unlikely(rc)) {
+        complete_work(IBV_WC_GENERAL_ERR, VENDOR_ERR_NOMEM, ctx);
+        goto err_free_bctx;
+    }
+
+    rc = build_host_sge_array(backend_dev->rdma_dev_res, new_sge, sge, num_sge,
+                              &backend_dev->rdma_dev_res->stats.rx_bufs_len);
+    if (rc) {
+        complete_work(IBV_WC_GENERAL_ERR, rc, ctx);
+        goto err_dealloc_cqe_ctx;
+    }
+
+    wr.num_sge = num_sge;
+    wr.sg_list = new_sge;
+    wr.wr_id = bctx_id;
+    rc = ibv_post_srq_recv(srq->ibsrq, &wr, &bad_wr);
+    if (rc) {
+        rdma_error_report("ibv_post_srq_recv fail, srqn=0x%x, rc=%d, errno=%d",
+                          srq->ibsrq->handle, rc, errno);
+        complete_work(IBV_WC_GENERAL_ERR, VENDOR_ERR_FAIL_BACKEND, ctx);
+        goto err_dealloc_cqe_ctx;
+    }
+
+    atomic_inc(&backend_dev->rdma_dev_res->stats.missing_cqe);
+    backend_dev->rdma_dev_res->stats.rx_bufs++;
+
+    return;
+
+err_dealloc_cqe_ctx:
+    backend_dev->rdma_dev_res->stats.rx_bufs_err++;
+    rdma_rm_dealloc_cqe_ctx(backend_dev->rdma_dev_res, bctx_id);
+
+err_free_bctx:
+    g_free(bctx);
+}
+
 int rdma_backend_create_pd(RdmaBackendDev *backend_dev, RdmaBackendPD *pd)
 {
     pd->ibpd = ibv_alloc_pd(backend_dev->context);
@@ -981,8 +1034,9 @@ int rdma_backend_modify_srq(RdmaBackendSRQ *srq, struct ibv_srq_attr *srq_attr,
 
 void rdma_backend_destroy_srq(RdmaBackendSRQ *srq)
 {
-    if (srq->ibsrq)
+    if (srq->ibsrq) {
         ibv_destroy_srq(srq->ibsrq);
+    }
 }
 
 #define CHK_ATTR(req, dev, member, fmt) ({ \

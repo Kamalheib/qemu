@@ -93,6 +93,7 @@ typedef struct RdmaRmQP {
 
 typedef struct RdmaRmSRQ {
     RdmaBackendSRQ backend_srq;
+    uint32_t recv_cq_handle;
     void *opaque;
 } RdmaRmSRQ;
 

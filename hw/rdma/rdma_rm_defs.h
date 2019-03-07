@@ -25,7 +25,7 @@
 #define MAX_PKEYS             MAX_PORT_PKEYS
 #define MAX_UCS               512
 #define MAX_MR_SIZE           (1UL << 27)
-#define MAX_QP                1024
+#define MAX_QP                0xffff
 #define MAX_SGE               4
 #define MAX_CQ                2048
 #define MAX_MR                1024

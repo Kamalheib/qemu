@@ -512,7 +512,7 @@ static int query_qp(PVRDMADev *dev, union pvrdma_cmd_req *req,
     struct ibv_qp_init_attr init_attr;
     int rc;
 
-    memset(rsp, 0, sizeof(*rsp));
+    memset(resp, 0, sizeof(*resp));
 
     rc = rdma_rm_query_qp(&dev->rdma_dev_res, &dev->backend_dev, cmd->qp_handle,
                           (struct ibv_qp_attr *)&resp->attrs, cmd->attr_mask,

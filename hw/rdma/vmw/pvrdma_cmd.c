@@ -613,7 +613,6 @@ static struct cmd_handler cmd_handlers[] = {
     {PVRDMA_CMD_CREATE_MR,    PVRDMA_CMD_CREATE_MR_RESP,         create_mr},
     {PVRDMA_CMD_DESTROY_MR,   PVRDMA_CMD_DESTROY_MR_RESP_NOOP,   destroy_mr},
     {PVRDMA_CMD_CREATE_CQ,    PVRDMA_CMD_CREATE_CQ_RESP,         create_cq},
-    {PVRDMA_CMD_RESIZE_CQ,    PVRDMA_CMD_RESIZE_CQ_RESP,         NULL},
     {PVRDMA_CMD_DESTROY_CQ,   PVRDMA_CMD_DESTROY_CQ_RESP_NOOP,   destroy_cq},
     {PVRDMA_CMD_CREATE_QP,    PVRDMA_CMD_CREATE_QP_RESP,         create_qp},
     {PVRDMA_CMD_MODIFY_QP,    PVRDMA_CMD_MODIFY_QP_RESP,         modify_qp},
